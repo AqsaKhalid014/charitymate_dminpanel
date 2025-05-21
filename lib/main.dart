@@ -5,6 +5,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'all posts.dart';
+import 'all user5s.dart';
+import 'login page.dart';
+import 'login page.dart';
+import 'select post screen.dart';
 import 'check login.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
@@ -199,10 +204,18 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
             ),
-            _drawerItem(icon: Icons.home, label: 'Dashboard', onTap: () {}),
-            _drawerItem(icon: Icons.people, label: 'Users', onTap: () {}),
-            _drawerItem(icon: Icons.feedback, label: 'Feedback', onTap: () {}),
-            _drawerItem(icon: Icons.logout, label: 'Logout', onTap: () {}),
+            _drawerItem(icon: Icons.home, label: 'Dashboard', onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context)=>DashboardScreen()));
+            }),
+            _drawerItem(icon: Icons.square_foot, label: 'Donations', onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context)=>AllDonationsScreen()));
+
+            }),
+            _drawerItem(icon: Icons.people, label: 'Users', onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context)=>UserAuthenticationsScreen()));
+            }),
+            _drawerItem(icon: Icons.logout, label: 'Logout',  onTap: () => _showLogoutDialog(context), // Show dialog on Logout button click
+            ),
           ],
         ),
       ),
@@ -220,9 +233,9 @@ class DashboardScreen extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               childAspectRatio: 3.0, // Increased aspect ratio to reduce height
               children: const [
-                DashboardCard(title: "Total Donations", change: "4.6% increase"),
-                DashboardCard(title: "Total Money", change: "2.6% decrease"),
-                DashboardCard(title: "View All Posts", change: "4.6% increase"),
+                DashboardCard(title: "Total Donations",navigateTo: AllDonationsScreen(),),
+                DashboardCard(title: "Total Money", ),
+                DashboardCard(title: "View All Posts",  navigateTo: TappableBlocksScreen(),),
               ],
             ),
             const SizedBox(height: 20),
@@ -342,7 +355,6 @@ class DashboardScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       Container(
                         height: 410,
-
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
@@ -372,13 +384,60 @@ class DashboardScreen extends StatelessWidget {
                               itemCount: feedbacks.length,
                               itemBuilder: (context, index) {
                                 var feedback = feedbacks[index];
+
                                 return Card(
                                   margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                                   elevation: 2,
                                   child: ListTile(
                                     leading: const Icon(Icons.star, color: Colors.yellow),
-                                    title: Text(feedback['feedback'] ?? '', style: const TextStyle(fontSize: 15)),
+                                    title: Text(
+                                      feedback['feedback'] ?? '',
+                                      style: const TextStyle(fontSize: 15),
+                                    ),
                                     subtitle: Text("Rating: ${feedback['rating']} ⭐"),
+                                    trailing: PopupMenuButton<String>( icon: const Icon(Icons.more_vert, color: Colors.black), // Change color here
+
+                                      onSelected: (value) async {
+                                        if (value == 'delete') {
+                                          bool? confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Delete Feedback'),
+                                              content: const Text('Are you sure you want to delete this feedback?'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, false),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, true),
+                                                  child: const Text('Delete'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+
+                                          if (confirm == true) {
+                                            await FirebaseFirestore.instance
+                                                .collection('feedback')
+                                                .doc(feedback.id)
+                                                .delete();
+                                          }
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete, color: Colors.red),
+                                              SizedBox(width: 8),
+                                              Text('Delete'),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 );
                               },
@@ -386,6 +445,7 @@ class DashboardScreen extends StatelessWidget {
                           },
                         ),
                       ),
+
                     ],
                   ),
                 ),
@@ -493,70 +553,59 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _drawerItem({required IconData icon, required String label, required VoidCallback onTap}) {
     return ListTile(
-      leading: Icon(icon, color: Colors.black),
+      leading: Icon(icon, color: Colors.black,size: 30,),
       title: Text(label, style: const TextStyle(color: Colors.black)),
       onTap: onTap,
     );
   }
 }
-
 class DashboardCard extends StatelessWidget {
   final String title;
-  final String change;
+
+  final Widget? navigateTo; // Optional
 
   const DashboardCard({
     super.key,
     required this.title,
-    required this.change,
+
+    this.navigateTo,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.orange),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '100', // Replace with actual data from Firestore
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                change.contains('increase') ? Icons.arrow_upward : Icons.arrow_downward,
-                color: change.contains('increase') ? Colors.green : Colors.red,
-                size: 16,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                change,
-                style: TextStyle(
-                  color: change.contains('increase') ? Colors.green : Colors.red,
-                ),
-              ),
-            ],
-          ),
-        ],
+    return GestureDetector(
+      onTap: navigateTo != null
+          ? () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => navigateTo!),
+        );
+      }
+          : null,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.orange),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(  crossAxisAlignment: CrossAxisAlignment.center, // Center horizontally
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -647,5 +696,33 @@ void _showDisableDialog(String email) {
         ],
       );
     },
+  );
+}
+Future<void> _showLogoutDialog(BuildContext context) async {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Logout Confirmation'),
+      content: Text('Are you sure you want to logout?'),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(); // Close the dialog if No is clicked
+          },
+          child: Text('No'),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.of(context).pop(); // Close the dialog first
+            await FirebaseAuth.instance.signOut(); // Sign out the user
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => LoginPage()), // Navigate to login screen
+            );
+          },
+          child: Text('Yes'),
+        ),
+      ],
+    ),
   );
 }
